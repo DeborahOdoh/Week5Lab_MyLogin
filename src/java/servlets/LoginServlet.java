@@ -11,17 +11,39 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import models.AccountService;
  
-@WebServlet(name = "LoginServlet", urlPatterns = {"/login"})
+
 public class LoginServlet extends HttpServlet {
  
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-                    //request.setAttribute("result", "");
 
+        HttpSession session = request.getSession();
+        
+        String user = (String)session.getAttribute("username");
+        String logout = request.getParameter("logout");
+        
+        if(logout != null){
+            request.setAttribute("message", "You have successful logged out.");
+            session.invalidate();
+            
+           // session = request.getSession();
+            getServletContext().getRequestDispatcher("/WEB-INF/login.jsp")
+               .forward(request, response);
+        }
+        
+        else if(user != null){
+            response.sendRedirect("home");
+        }
+        
+        else{
         getServletContext().getRequestDispatcher("/WEB-INF/login.jsp")
-                .forward(request, response);
+               .forward(request, response);
+        }
+
     }
 
    
@@ -29,29 +51,36 @@ public class LoginServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
                 
-                String userName = request.getParameter("username");
-                String password = request.getParameter("password");
-                String user1 = "abe";
-                String user2 = "barb";
+        String username = request.getParameter("username");
+        String password = request.getParameter("password");
 
-                request.setAttribute("username", userName);
-                request.setAttribute("password", password);
+        AccountService user = new AccountService(username, password);
 
-        
               
-        if (!(userName.equals(user1) || userName.equals(user2))) {
-            request.setAttribute("result", "Failed authentication");
+        if (username.equals(null) || username == "" || password.equals(null) || password == "") {
+            
+            request.setAttribute("message", "Password/Username cannot be empty");
             
             getServletContext().getRequestDispatcher("/WEB-INF/login.jsp")
                 .forward(request, response);
-            return;
         }
         
+        else if(user.login(username, password) != null){
+            request.setAttribute("message", "You have successfully logged in.");
+            HttpSession session = request.getSession();
+            session.setAttribute("username", username);
+            session.setAttribute("password", password);
+            response.sendRedirect("home");
+        }
         
-        request.setAttribute("result", "");
-        getServletContext().getRequestDispatcher("/WEB-INF/login.jsp")
-                .forward(request, response);
-        
-       
+        else{
+            HttpSession session = request.getSession();
+            session.setAttribute("username", username);
+            session.setAttribute("password", password);
+            request.setAttribute("message", "Failed Authentication");
+            getServletContext().getRequestDispatcher("/WEB-INF/login.jsp")
+                    .forward(request, response);
+
+        }
     }
 }
